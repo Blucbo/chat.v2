@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Chat http</title>
+    <script src="main-http.js"></script>
+    <style>
+        .notified {
+            background-color: red;
+        }
+    </style>
+</head>
+<body>
+    <h2>hello</h2>
+    <input data-elem="name" type="text">
+    <input data-elem="nickname" type="text">
+    <button data-elem="save" >save</button>
+
+    <div>
+        <span data-elem="title-name">name</span>
+        <span data-elem="title-nickname">nickname</span>
+    </div>
+
+    <div>
+        users
+        <ul data-elem="users-list">
+            <li>nickname</li>
+            <li>nickname</li>
+        </ul>
+    </div>
+
+    <div>
+        <ul data-elem="msg-list">
+            <li>nickname: msg</li>
+        </ul>
+        <input data-elem="message" type="text">
+        <button data-elem="send">send</button>
+    </div>
+
+
+</html>
