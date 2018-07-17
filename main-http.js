@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", function() {
-
+    const socket = io();
     const USER = {
         id: null,
         name: null,
