@@ -15,6 +15,9 @@ app.get('/', function (req, res) {
 app.get('/main-socket.js', function (req, res) {
    res.sendFile(__dirname + '/main-socket.js');
 });
+app.get('/style.css', function (req, res) {
+    res.sendFile(__dirname + '/style.css');
+});
 
 let countUsers = 0;
 const users = [];
@@ -31,13 +34,19 @@ io.on('connection', function(client) {
             nickname: newUser.nickname,
             id: id,
             status: 'online',
-            lastVisit: new Date().getTime()
+            label: 'just appeared'
         };
         console.log('user', user);
         users.push(user);
         client.emit('get user', user);
         client.emit('get messages', messages);
         io.emit('get users', users);
+        const indexUser = users.length - 1;
+        setTimeout(() => {
+            if (users[indexUser].status === 'offline') return;
+            users[indexUser].label = 'online';
+            io.emit('get users', users);
+        }, 60*1000);
     });
     client.on('new message', (mesg) => {
         if (messages.length >= 100) {
@@ -60,14 +69,17 @@ io.on('connection', function(client) {
         const user = users[indexOfUserDisconnected];
 
         user.status = 'offline';
-        user.lastVisit = new Date().getTime();
+        user.label = 'just left';
 
         const msg = {
             msg: `goodbye everybody`,
             nickname: user.nickname
         };
         io.emit('get users', users);
-
+        setTimeout(() => {
+            users[indexOfUserDisconnected].label = 'offline';
+            io.emit('get users', users);
+        }, 60*1000);
         io.emit('get message', msg);
         console.log('disconnect', client.id);
     });

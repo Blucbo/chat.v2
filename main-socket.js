@@ -1,15 +1,19 @@
 document.addEventListener("DOMContentLoaded", function() {
-    // const socket = io.connect();
+    const modal = document.getElementById('myModal');
+    const ulTyping = document.querySelector('#typing');
+
+    function hideModal() {
+        modal.style.display = "none";
+    }
+
     const socket = io('http://localhost:4200');
     const TYPING_TIMER_LENGTH = 500;
     let userId;
     let typing = false;
     let lastTypingTime;
-    console.log(socket.id); // undefined
 
     socket.on('connect', () => {
         userId = socket.id;
-        console.log(socket.id); // 'G5p5...'
     });
     const USER = {
         id: null,
@@ -30,7 +34,6 @@ document.addEventListener("DOMContentLoaded", function() {
         if (!typing) {
             typing = true;
             socket.emit('typing', USER);
-            console.log('typing');
         }
         lastTypingTime = (new Date()).getTime();
 
@@ -38,7 +41,6 @@ document.addEventListener("DOMContentLoaded", function() {
             var typingTimer = (new Date()).getTime();
             var timeDiff = typingTimer - lastTypingTime;
             if (timeDiff >= TYPING_TIMER_LENGTH && typing) {
-                console.log('stop typing');
                 socket.emit('stop typing', USER);
                 typing = false;
             }
@@ -49,20 +51,13 @@ document.addEventListener("DOMContentLoaded", function() {
     btnSendUser.addEventListener('click', send, {passive: true});
 
     socket.on('get user', (data) => {
-        console.log('get user', data);
         Object.assign(USER, data);
         renderTitle(USER);
     });
 
 
-    let timerId;
     socket.on('get users', (data) => {
-        clearTimeout(timerId);
-        console.log('get users', data);
         renderUserList(data);
-        timerId = setTimeout(() => {
-            renderUserList(data);
-        }, 1000 * 60);
     });
 
     socket.on('get message', (mesg) => {
@@ -74,33 +69,19 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 
     socket.on('typing', (user) => {
-        console.log('t', user);
+        addWhoTyping(user);
     });
 
     socket.on('stop typing', (user) => {
-        console.log('stop t', user);
+        deleteTyping(user.id);
     });
 
     function save() {
         const name = document.querySelector('[data-elem=name]').value;
         const nickname = document.querySelector('[data-elem=nickname]').value;
-        console.log(name, nickname);
         const user = {name, nickname};
+        hideModal();
         socket.emit('create user', userId, user);
-        /// post req
-
-        // ajaxRequest({
-        //     method: 'POST',
-        //     url: 'api/chat',
-        //     data: {name, nickname},
-        //     callback: (data) => {
-        //         Object.assign(USER, data);
-        //         renderTitle(USER);
-        //         setInterval(() => {
-        //             checkStatus(USER.id);
-        //         }, 1000);
-        //     }
-        // })
     }
 
     function send() {
@@ -109,53 +90,23 @@ document.addEventListener("DOMContentLoaded", function() {
             nickname: USER.nickname
         };
         socket.emit('new message', msg);
-        // ajaxRequest({
-        //     method: 'POST',
-        //     url: 'api/chat/messages',
-        //     data: data
-        // });
     }
-    //
-    // function getUsersAndRenderList(id) {
-    //     ajaxRequest({
-    //         method: 'GET',
-    //         url: `api/chat/users/${id}`,
-    //         callback: (data) => {
-    //             renderUserList(data);
-    //         }
-    //     });
-    // }
 
     function renderUserList(arr) {
         usersList.innerHTML = '';
         usersList.appendChild(getDoneList(arr, getTemplateUser, 'li'))
     }
 
-    // function checkStatus(id) {
-    //     ajaxRequest({
-    //         method: 'GET',
-    //         url: `api/chat/status/${id}`,
-    //         callback: (isChanged) => {
-    //             if (isChanged.users) {
-    //                 getUsersAndRenderList(id);
-    //             }
-    //
-    //             if (isChanged.messages) {
-    //                 getMesgsAndRenderList(id);
-    //             }
-    //         }
-    //     });
-    // }
+    function addWhoTyping(user) {
+        const template = document.createElement('li');
+        template.id = user.id;
+        template.innerHTML = getTemplateTyping(user);
+        ulTyping.appendChild(template)
+    }
 
-    // function getMesgsAndRenderList(id) {
-    //     ajaxRequest({
-    //         method: 'GET',
-    //         url: `api/chat/messages/${id}`,
-    //         callback: (data) => {
-    //             renderMesgsList(data);
-    //         }
-    //     });
-    // }
+    function deleteTyping(id) {
+        document.getElementById(id).remove();
+    }
 
     function renderMesgsList(arr, isClear = true) {
         if (isClear) {
@@ -170,12 +121,14 @@ document.addEventListener("DOMContentLoaded", function() {
         document.querySelector('[data-elem=title-nickname]').innerHTML = nickname;
     }
 
-    function getDoneList(arr, fnTemplate, createElem = 'div') {
+    function getDoneList(arr, fnTemplate, createElem = 'div', classElem = 'clearfix') {
         const fragment = document.createDocumentFragment();
         arr.reduce(function(fragment, current) {
             const template = document.createElement(createElem);
+            template.classList.add(classElem);
             template.innerHTML = fnTemplate(current);
-            return fragment.appendChild(template);
+            fragment.appendChild(template);
+            return fragment;
         }, fragment);
         return fragment;
     }
@@ -184,48 +137,33 @@ document.addEventListener("DOMContentLoaded", function() {
         const reg = '@' + USER.nickname;
         const classForNotified = (msg.search(reg) != -1) ? 'notified' : '';
 
-        return `<span class="title">${nickname}</span> 
-                <span class="text ${classForNotified}">${msg}</span>`;
+        return `<div class="message-data">
+                    <span class="message-data-name">${nickname}</span>
+                </div>
+                <div class="message my-message ${classForNotified}">
+                    ${msg}
+                </div>`;
     }
 
-    function getTemplateUser({name, nickname, status, lastVisit}) {
-        const labelActivity = getActivity(status, lastVisit);
-        return `<span class="label">${labelActivity }</span> 
-                <span class="title">${name}</span> 
-                <span class="text">${nickname}</span>`;
+    function getTemplateUser({name, nickname, status, label}) {
+        return `<div class="about">
+                    <div class="name">
+                        <span class="title">${name}</span>
+                        <span class="text">${nickname}</span>
+                    </div>
+                    <div class="status">
+                        <i class="fa fa-circle ${status}"></i> ${label}
+                    </div>
+                </div>`;
     }
 
-    function getActivity(status, date) {
-        const now = new Date().getTime();
-        const interval = 1000 * 60;
-        if (status === 'online') {
-            console.log('date', now - date > interval);
-            return (now - date > interval) ? 'online' : 'just appeared';
-        }
-
-        if (status === 'offline') {
-            console.log('date', now - date > interval);
-            return (now - date > interval) ? 'offline' : 'just left';
-        }
+    function getTemplateTyping({name, nickname, status, label}) {
+        return `<div class="message-data">
+                    <span class="message-data-name"><i class="fa fa-circle online"></i>@${name} is typing</span>
+                </div>
+                <i class="fa fa-circle online"></i>
+                <i class="fa fa-circle online" style="color: #AED2A6"></i>
+                <i class="fa fa-circle online" style="color:#DAE9DA"></i>`;
     }
-
-    function ajaxRequest(options) {
-        const url = options.url || '/';
-        const method = options.method || 'GET';
-        const callback = options.callback || function () {};
-        const data = options.data || {};
-        const xmlHttp = new XMLHttpRequest();
-
-        xmlHttp.open(method, url, true);
-        xmlHttp.setRequestHeader('Content-Type', 'application/json');
-        xmlHttp.send(JSON.stringify(data));
-
-        xmlHttp.onreadystatechange = () => {
-            if(xmlHttp.status == 200 && xmlHttp.readyState === 4) {
-                callback(JSON.parse(xmlHttp.responseText))
-            }
-        }
-    };
-
 
 });
