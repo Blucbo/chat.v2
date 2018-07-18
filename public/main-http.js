@@ -1,5 +1,11 @@
 document.addEventListener("DOMContentLoaded", function() {
 
+    const modal = document.getElementById('myModal');
+
+    function hideModal() {
+        modal.style.display = "none";
+    }
+
     const USER = {
         id: null,
         name: null,
@@ -27,6 +33,7 @@ document.addEventListener("DOMContentLoaded", function() {
             url: 'api/chat',
             data: {name, nickname},
             callback: (data) => {
+                hideModal();
                 Object.assign(USER, data);
                 renderTitle(USER);
                 setInterval(() => {
@@ -101,12 +108,14 @@ document.addEventListener("DOMContentLoaded", function() {
         document.querySelector('[data-elem=title-nickname]').innerHTML = nickname;
     }
 
-    function getDoneList(arr, fnTemplate, createElem = 'div') {
+    function getDoneList(arr, fnTemplate, createElem = 'div', classElem = 'clearfix') {
         const fragment = document.createDocumentFragment();
         arr.reduce(function(fragment, current) {
             const template = document.createElement(createElem);
+            template.classList.add(classElem);
             template.innerHTML = fnTemplate(current);
-            return fragment.appendChild(template);
+            fragment.appendChild(template);
+            return fragment;
         }, fragment);
         return fragment;
     }
@@ -115,13 +124,21 @@ document.addEventListener("DOMContentLoaded", function() {
         const reg = '@' + USER.nickname;
         const classForNotified = (msg.search(reg) != -1) ? 'notified' : '';
 
-        return `<span class="title">${nickname}</span> 
-                <span class="text ${classForNotified}">${msg}</span>`;
+        return `<div class="message-data">
+                    <span class="message-data-name">${nickname}</span>
+                </div>
+                <div class="message my-message ${classForNotified}">
+                    ${msg}
+                </div>`;
     }
 
     function getTemplateUser({name, nickname}) {
-        return `<span class="title">${name}</span> 
-                <span class="text">${nickname}</span>`;
+        return `<div class="about">
+                        <div class="name">
+                            <span class="title">${name}</span>
+                            <span class="text">${nickname}</span>
+                        </div>
+                    </div>`;
     }
 
     function ajaxRequest(options) {
