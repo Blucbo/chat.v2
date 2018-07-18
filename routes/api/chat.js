@@ -23,6 +23,9 @@ router.post("/", (req, res) => {
 
 router.post("/messages/", (req, res) => {
     const mesg = req.body;
+    if (messages.length >= 100) {
+        messages.shift();
+    }
     messages.push(mesg);
     changesMesgStatus = new Array(users.length).fill(true);
     res.status(200);
@@ -44,9 +47,6 @@ router.get("/users/:id", (req, res) => {
 router.get("/messages/:id", (req, res) => {
     changesMesgStatus[req.params.id] = false;
     res.send(messages);
-});
-router.get("/:id", (req, res) => {
-
 });
 
 module.exports = router;
